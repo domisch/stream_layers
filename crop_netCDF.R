@@ -9,12 +9,12 @@
 
 
 ### Install the libraries
-install.packages("raster")
-install.packages("rgdal")
-install.packages("ncdf4")
-install.packages("maps") 
-install.packages("foreach") 
-install.packages("doParallel") 
+if (!require("raster")) {  install.packages("raster", dependencies = TRUE) ; library(raster)}
+if (!require("rgdal")) {  install.packages("rgdal", dependencies = TRUE) ; library(rgdal)}
+if (!require("ncdf4")) {  install.packages("ncdf4", dependencies = TRUE) ; library(ncdf4)} # manual install below
+if (!require("maps")) {  install.packages("maps", dependencies = TRUE) ; library(maps)}
+if (!require("foreach")) {  install.packages("foreach", dependencies = TRUE) ; library(foreach)}
+if (!require("doParallel")) {  install.packages("doParallel", dependencies = TRUE) ; library(doParallel)}
 
 ### Set working directory
 dir <- "c:/freshwater_variables"
@@ -57,19 +57,18 @@ cl <- makePSOCKcluster(detectCores()-2) # leave two cores for background process
 registerDoParallel(cl) # register parallel backend
 getDoParWorkers() # show number of workers
 ### Crop all layers in the brick and write the cropped layers to disk
-lc_avg_crop <- foreach(i = iter(names(lc_avg)), .packages = c("raster", "ncdf4")) %dopar% {
+lc_avg_crop <- foreach(i=names(lc_avg), lc = unstack(lc_avg) ,  .final=stack, .packages = c("raster", "ncdf4")) %dopar% {
   options(rasterNCDF4 = TRUE)
-  tmp <- crop(lc_avg[[i]], ext, snap="in")
+  tmp <- crop(lc, ext, snap="in")
   filename=paste0(i, ".tif")
-  writeRaster(tmp, filename=filename, overwrite=FALSE) # write cropped raster files to disk
+  writeRaster(tmp, filename=filename, overwrite=TRUE) # write cropped raster files to disk
   }
-### foreach() returns a list by default, get the layers back in a stack
-lc_avg_crop <- stack(unlist(lc_avg_crop))
-### Check the layers
+
+### Check the layers in the new cropped stack
 plot(lc_avg_crop)
 
 ### Convert raster stack into a dataframe
-lc_avg_crop_df <- foreach(i = iter(names(lc_avg_crop)), .combine=cbind.data.frame, .packages = c("raster")) %dopar% {
+lc_avg_crop_df <- foreach(i=names(lc_avg_crop), lc = unstack(lc_avg_crop), .combine=cbind.data.frame, .packages = c("raster")) %dopar% {
   as.data.frame(lc_avg_crop[[i]], na.rm=T)
   }
 ### Check output
