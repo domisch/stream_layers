@@ -57,11 +57,11 @@ names(pts) <- c("ID", "longitude", "latitude")
 
 ### OPTIONAL:
 ### Load points from table
-pts <- read.dbf("points.dbf", as.is=FALSE) # direclty from the shape file (faster than .shp if many points)
+pts <- read.dbf("points.dbf", as.is=FALSE) # directly from the .dbf file (faster than .shp if many points)
 pts <- read.csv("points.csv", header=TRUE) # from a .csv table
 ### Transform the points to a spatial object
 coordinates(pts) <- pts[2:3] # assign coordinates
-proj4string(pts) <- "+proj=longlat +ellps=WGS84" # set projection
+proj4string(pts) <- "+proj=longlat +ellps=WGS84" # set projection to WGS84
 ### Change column names
 names(pts) <- c("ID", "longitude", "latitude")
 
@@ -111,7 +111,8 @@ pts_snapped <- subset(pts_snapped, select=-c(old_longitude, old_latitude))
 
 
 ### Which points were removed?
-rows_removed <- which(!pts$ID %in% pts_snapped$ID) # get those ID's that were not moved to the stream grids
+"%ni%" <- Negate("%in%") # create a "not in" -function
+rows_removed <- which(pts$ID %ni% pts_snapped$ID) # get those ID's that were not moved to the stream grids
 pts_removed <- pts[rows_removed,] # subset the raw SpatialPointsDataFrame
 ### Export these removed points as a shape file
 writeOGR(pts_removed, "points_removed.shp", driver="ESRI Shapefile", layer="points_removed.shp")
@@ -134,10 +135,11 @@ cl <- makePSOCKcluster(detectCores()-2) # leave two cores
 # cl <- makePSOCKcluster(1) # if old PC use only 1 core
 registerDoParallel(cl) # register parallel backend
 getDoParWorkers() # show number of workers
-### Run in parallel
-pts_extract <- foreach(i = iter(names(lc_avg)), .combine='cbind', .packages = c("raster", "ncdf4")) %dopar% {
+
+### Run in parallel, might take a while depending on the number of points
+pts_extract <- foreach(lc = unstack(lc_avg), .combine='cbind', .packages = c("raster", "ncdf4")) %dopar% {
   options(rasterNCDF4 = TRUE)
-  extract(lc_avg[[i]], pts_snapped[c("longitude", "latitude")], df=T)[2] 
+  extract(lc, pts_snapped[c("longitude", "latitude")], df=T)[2] 
   }
 stopCluster(cl)
 
