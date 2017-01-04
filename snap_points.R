@@ -45,7 +45,7 @@ rbind.match.columns <- function(input1, input2) {
 ### Download freshwater-specific variables from EarthEnv 
 ###------------------------------------------------------#
 download.file("http://data.earthenv.org/streams/landcover_average.nc", 
-               paste(getwd(), "landcover_average.nc", sep="/"), mode = "wb")
+               paste0(dir, "/landcover_average.nc"), mode = "wb")
 
 ### Load layers and rename the single bands
 lc_avg <- brick("landcover_average.nc")
@@ -63,7 +63,7 @@ names(lc_avg) <- paste(c("lc_avg"), sprintf("%02d", seq(1:12)), sep="_")
 
 ### Load example points shape file. See the .shp or .csv files in the zip-folder on github:
 download.file("http://github.com/domisch/stream_layers/raw/master/snap_points.zip", 
-               paste(getwd(), "snap_points.zip", sep="/"), mode = "wb")
+               paste0(dir, "/snap_points.zip"), mode = "wb")
 
 ### Unzip files
 unzip("snap_points.zip", exdir=getwd(), junkpaths=TRUE)
