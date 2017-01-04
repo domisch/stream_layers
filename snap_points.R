@@ -4,7 +4,7 @@
 ### Move points to closest freshwater pixel and extract raster values to each point
 ###---------------------------------------------------------------------------------#
 
-### Sami Domisch, December 2015
+### Sami Domisch, January 2017
 
 ### Install and load libraries
 if (!require("raster")) {  install.packages("raster", dependencies = TRUE) ; library(raster)}
@@ -23,6 +23,24 @@ dir <- "C:/freshwater_variables"
 dir.create(dir)
 setwd(dir)
 
+### Prepare function to merge dataframes with different column names, keep only those that match
+### Original function obtained from https://amywhiteheadresearch.wordpress.com/2013/05/13/combining-dataframes-when-the-columns-dont-match/
+rbind.match.columns <- function(input1, input2) {
+    n.input1 <- ncol(input1)
+    n.input2 <- ncol(input2)
+ 
+    if (n.input2 < n.input1) {
+        TF.names <- which(names(input2) %in% names(input1))
+        column.names <- names(input2[, TF.names])
+    } else {
+        TF.names <- which(names(input1) %in% names(input2))
+        column.names <- names(input1[, TF.names])
+    }
+ 
+    return(rbind(input1[, column.names], input2[, column.names]))
+}
+
+
 ###------------------------------------------------------#
 ### Download freshwater-specific variables from EarthEnv 
 ###------------------------------------------------------#
@@ -37,6 +55,7 @@ names(lc_avg) <- paste(c("lc_avg"), sprintf("%02d", seq(1:12)), sep="_")
 
 ### Extract one layer 
 # lc01 <- lc_avg[["lc_avg_01"]]
+
 
 ###-------------------------------------------------------------------------#
 ### Load the points, either the entire shapefile or only the coordinates
@@ -72,8 +91,9 @@ names(pts) <- c("ID", "longitude", "latitude")
 ###--------------------------------------------------------------------------#
 
 ### Download the Java-Tool from phycoweb.net
-download.file("http://www.phycoweb.net/software/rasterGIS/moveCoordinatesToClosestDataPixel103.jar", 
-               paste(getwd(), "moveCoordinatesToClosestDataPixel103.jar", sep="/"), mode = "wb")
+download.file("http://www.phycoweb.net/software/rasterGIS/moveCoordinatesToClosestDataPixel104.jar", 
+               paste0(dir, "/moveCoordinatesToClosestDataPixel103.jar"), mode = "wb")
+
 
 ### Citation: 
 ### Verbruggen, H. (2012) RasterTools: moveCoordinatesToClosestDataPixel.jar version 1.03, available at http://www.phycoweb.net/software
@@ -113,16 +133,36 @@ pts_snapped <- subset(pts_snapped, select=-c(old_longitude, old_latitude))
 ### Which points were removed?
 "%ni%" <- Negate("%in%") # create a "not in" -function
 rows_removed <- which(pts$ID %ni% pts_snapped$ID) # get those ID's that were not moved to the stream grids
-pts_removed <- pts[rows_removed,] # subset the raw SpatialPointsDataFrame
-### Export these removed points as a shape file
-writeOGR(pts_removed, "points_removed.shp", driver="ESRI Shapefile", layer="points_removed.shp")
+
+### The Java-tool has a small bug: if the point is in the center of the grid cell, it may be 
+### considered outside the distance tolerance. 
+### To keep these points anyway:, substitute the snapped points in the original data, then extract 
+### the values from the raster layers (see next step below). If a point does not fall on the grid cell, no value is 
+### extracted and that point is not used anymore.
+
+if (length(rows_removed)>0) { 
+	pts_removed = pts[rows_removed,]   # subset the raw SpatialPointsDataFrame
+	pts_removed$snapped=0              # helps subsetting later on
+  pts_removed=as.data.frame(pts_removed)
+	pts_snapped=rbind.match.columns(pts_snapped, pts_removed) # merge anyway due to bug in the snapping
+}
 
 
-### Plot the raw vs. snapped points
-x11()
-plot(raster_mask, col='grey') # stream network
-points(pts_snapped[c("longitude", "latitude")], pch=16, col='blue') # points that were retained
-points(pts_removed, pch=16, col='red') # points that were removed
+coordinates(pts_snapped)=c("longitude", "latitude")
+proj4string(pts_snapped) <- CRS("+proj=longlat +datum=WGS84")
+
+### Export the points as a shape file
+writeOGR(pts_snapped, paste0(dir, "/pts_snapped.shp"), driver="ESRI Shapefile", layer="pts_snapped.shp")
+
+
+
+# ### Plot the raw vs. snapped points
+# ### Obsolete due to the bug..
+# x11()
+# plot(raster_mask, col='grey') # stream network
+# points(pts_snapped[c("longitude", "latitude")], pch=16, col='blue') # points that were retained
+# points(pts_removed, pch=16, col='red') # points that were removed
+
 
 
 ###------------------------------------------------------------------------------#
@@ -139,7 +179,7 @@ getDoParWorkers() # show number of workers
 ### Run in parallel, might take a while depending on the number of points
 pts_extract <- foreach(lc = unstack(lc_avg), .combine='cbind', .packages = c("raster", "ncdf4")) %dopar% {
   options(rasterNCDF4 = TRUE)
-  extract(lc, pts_snapped[c("longitude", "latitude")], df=T)[2] 
+  extract(lc, pts_snapped, df=T)[2] 
   }
 stopCluster(cl)
 
