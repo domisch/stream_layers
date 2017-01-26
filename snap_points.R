@@ -185,7 +185,8 @@ stopCluster(cl)
 
 
 ### Merge the extracted values to the (new) coordinate table
-pts_extract <- cbind(pts_snapped, pts_extract)
+pts_extract <- cbind(coordinates(pts_snapped), pts_extract)
+
 
 ### Export as table
 write.csv(pts_extract, "points_extract.csv", row.names=F)
