@@ -147,9 +147,11 @@ if (length(rows_removed)>0) {
 	pts_snapped=rbind.match.columns(pts_snapped, pts_removed) # merge anyway due to bug in the snapping
 }
 
-
+### Create spatial objects
 coordinates(pts_snapped)=c("longitude", "latitude")
 proj4string(pts_snapped) <- CRS("+proj=longlat +datum=WGS84")
+coordinates(pts_removed)=c("longitude", "latitude")
+proj4string(pts_removed) <- CRS("+proj=longlat +datum=WGS84")
 
 ### Export the points as a shape file
 writeOGR(pts_snapped, paste0(dir, "/pts_snapped.shp"), driver="ESRI Shapefile", layer="pts_snapped.shp")
