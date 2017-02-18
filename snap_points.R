@@ -187,7 +187,8 @@ stopCluster(cl)
 
 
 ### Merge the extracted values to the (new) coordinate table
-pts_extract <- cbind(coordinates(pts_snapped), pts_extract)
+pts_extract <- cbind(as.data.frame(pts_snapped), pts_extract)
+# pts_extract <- cbind(coordinates(pts_snapped), pts_extract) # drops the ID
 
 
 ### Export as table
