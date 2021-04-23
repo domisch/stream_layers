@@ -91,7 +91,7 @@ names(pts) <- c("ID", "longitude", "latitude")
 ###--------------------------------------------------------------------------#
 
 ### Download the Java-Tool from phycoweb.net
-download.file("http://www.phycoweb.net/software/rasterGIS/moveCoordinatesToClosestDataPixel104.jar", 
+download.file("https://github.com/hverbruggen/RasterTools/blob/master/moveCoordinatesToClosestDataPixel104.jar", 
                paste0(dir, "/moveCoordinatesToClosestDataPixel103.jar"), mode = "wb")
 
 
