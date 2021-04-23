@@ -96,7 +96,7 @@ download.file("https://github.com/hverbruggen/RasterTools/blob/master/moveCoordi
 
 
 ### Citation: 
-### Verbruggen, H. (2012) RasterTools: moveCoordinatesToClosestDataPixel.jar version 1.03, available at http://www.phycoweb.net
+### Verbruggen H. (2017) RasterTools: moveCoordinatesToClosestDataPixel.jar version 1.04. https://github.com/hverbruggen/RasterTools
 
 ### Crop the base raster layer to a slightly larger extent that the points and save as .asc
 ### Run in smaller subsets if Java heap space error occurs (=RAM limitation due to large study area)
